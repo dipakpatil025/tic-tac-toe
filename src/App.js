@@ -72,12 +72,13 @@ function updateState(id, move) {
     const index = parseInt(id);
 
     if (item.textContent) {
-        return;
+        return false;
     }
 
     STATE_ARRAY[index - 1] = +move;
     moves.push(index - 1);
     item.textContent = bitToUser(STATE_ARRAY[index - 1]);
+    return true;
 }
 
 function playBotMove(switchMove) {
@@ -110,8 +111,10 @@ function App() {
             return;
         }
 
-        updateState(e.currentTarget.id, move);
-        checkWinAndUpdate(switchTurn);
+        const isStateUpdated = updateState(e.currentTarget.id, move);
+        if (isStateUpdated) {
+            checkWinAndUpdate(switchTurn);
+        }
     }
 
     return (
