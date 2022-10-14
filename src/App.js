@@ -3,7 +3,7 @@ import {useState} from "react";
 
 let STATE_ARRAY = Array(9).fill(null);
 let moves = [];
-let status = false;
+let gameOver = false;
 
 const bitToUser = (n) => {
     return n === 1 ? 'O' : 'X';
@@ -13,14 +13,22 @@ const updateResult = (r) => {
     document.getElementById('result').innerHTML = r;
 }
 
-function check(arr) {
+function getWinMessage(bit) {
+    if (bitToUser(bit) === 'O') {
+        return 'You won! 🎉🥳'
+    }
+
+    return 'You lose! 😔👎'
+}
+
+function check(arr = STATE_ARRAY) {
     for (let i = 0; i < 3; i++) {
         let initial = arr[i * 3];
         if (initial === null) {
             continue;
         }
         if (arr.slice(i * 3, i * 3 + 3).every(e => e === arr[i * 3])) {
-            return `${bitToUser(arr[i * 3])} wins`;
+            return getWinMessage(arr[i * 3]);
         }
     }
 
@@ -30,19 +38,19 @@ function check(arr) {
         }
 
         if (arr[i] === arr[i + 3] && arr[i + 3] === arr[i + 6]) {
-            return `${bitToUser(arr[i])} wins`
+            return getWinMessage(arr[i]);
         }
     }
 
     if (arr[0] !== null & arr[4] !== null && arr[8] !== null) {
         if (arr[0] === arr[4] && arr[4] === arr[8]) {
-            return `${bitToUser(arr[0])} wins`
+            return getWinMessage(arr[0]);
         }
     }
 
     if (arr[2] !== null && arr[4] !== null && arr[6] !== null) {
         if (arr[2] === arr[4] && arr[4] === arr[6]) {
-            return `${bitToUser(arr[2])} wins`
+            return getWinMessage(arr[2])
         }
     }
 
@@ -51,33 +59,59 @@ function check(arr) {
     }
 }
 
+function playRandomMove() {
+    const choices = [];
+    STATE_ARRAY.forEach((e, i) => {
+        if (e === null) choices.push(i);
+    })
+    return choices[Math.floor(Math.random() * choices.length)]
+}
+
+function updateState(id, move) {
+    const item = document.getElementById(id);
+    const index = parseInt(id);
+
+    if (item.textContent) {
+        return;
+    }
+
+    STATE_ARRAY[index - 1] = +move;
+    moves.push(index - 1);
+    item.textContent = bitToUser(STATE_ARRAY[index - 1]);
+}
+
+function playBotMove(switchMove) {
+    const botMove = playRandomMove();
+    console.log(botMove);
+    updateState(botMove + 1, false);
+    checkWinAndUpdate(switchMove, true);
+}
+
+function checkWinAndUpdate(switchMove, isBotMove = false) {
+    let res = check();
+    if (!res) {
+        if (!isBotMove) playBotMove(switchMove);
+        switchMove();
+        return;
+    }
+    gameOver = true;
+    updateResult(res);
+}
+
 function App() {
     const [move, setMove] = useState(true)
+
+    function switchTurn() {
+        setMove(m => !m);
+    }
+
     const click = e => {
-        if (status) {
+        if (gameOver || !move) {
             return;
         }
 
-
-        const id = e.currentTarget.id;
-        const item = document.getElementById(id);
-        const index = parseInt(id);
-
-        if (item.textContent) {
-            return;
-        }
-
-        STATE_ARRAY[index - 1] = +move;
-        moves.push(index - 1);
-        setMove(!move);
-        item.textContent = bitToUser(STATE_ARRAY[index - 1]);
-
-        const res = check(STATE_ARRAY);
-        if (!res) {
-            return;
-        }
-        status = true;
-        updateResult(res);
+        updateState(e.currentTarget.id, move);
+        checkWinAndUpdate(switchTurn);
     }
 
     return (
@@ -106,7 +140,8 @@ function App() {
                     })
 
                     updateResult("New Game")
-                    status = false;
+                    gameOver = false;
+                    setMove(true);
                 }}>Clear
                 </button>
 
@@ -115,10 +150,14 @@ function App() {
                         updateResult('This is the last move, can\'t undo');
                         return;
                     }
-                    const lastMove = moves.pop();
-                    setMove(!move);
-                    STATE_ARRAY[lastMove] = null;
-                    document.getElementById(`${lastMove+1}`).innerText = '';
+
+                    for (let i = 0; i < 2; i++) {
+                        const lastMove = moves.pop();
+                        STATE_ARRAY[lastMove] = null;
+                        document.getElementById(`${lastMove+1}`).innerText = '';
+                    }
+
+                    setMove(true);
                 }}>Undo
                 </button>
             </div>
